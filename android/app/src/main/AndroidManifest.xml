@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mah_awad.fg_assessment">
    <application
-         android:requestLegacyExternalStorage="true"
+        android:requestLegacyExternalStorage="true"
         android:label="fg_assessment"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

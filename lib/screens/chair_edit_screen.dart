@@ -1,14 +1,10 @@
 import 'dart:io';
-
 import 'package:fg_assessment/helper/chair_provider.dart';
-import 'package:fg_assessment/screens/Chair_view_Screen.dart';
 import 'package:fg_assessment/widgets/text_fiels_item.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import '../models/chair.dart';
 
 class ChairEditScreen extends StatefulWidget {
   const ChairEditScreen({Key? key}) : super(key: key);
@@ -23,16 +19,35 @@ class _ChairEditScreenState extends State<ChairEditScreen> {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController statusController = TextEditingController();
   File? _image;
+  bool firstTime = true;
+  late Chair selectedChair;
+  late int? id;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (firstTime) {
+      id = ModalRoute.of(context)?.settings.arguments as int?;
+      if (id != null) {
+        selectedChair =
+            Provider.of<ChairProvider>(context, listen: false).getChair(id!);
+        titleController.text = selectedChair.title;
+        descriptionController.text = selectedChair.description;
+        statusController.text = selectedChair.status;
+
+        if (selectedChair.imagePath != null) {
+          _image = File(selectedChair.imagePath);
+        }
+      }
+      firstTime = false;
+    }
+  }
 
   void getImageFromCamera() async {
     final imageFile = await ImagePicker()
         .pickImage(source: ImageSource.camera, imageQuality: 50);
     if (imageFile != null) {
       var tmpFile = File(imageFile.path);
-      print(imageFile.path);
-      final appDir = await getApplicationDocumentsDirectory();
-      final fileName = basename(appDir.path);
-      tmpFile = await tmpFile.copy("${appDir.path}/$fileName");
       setState(() {
         _image = tmpFile;
       });
@@ -40,14 +55,21 @@ class _ChairEditScreenState extends State<ChairEditScreen> {
   }
 
   void saveChair() {
-    String imagePath =  _image!.path;
+    String imagePath = _image!.path;
     String title = titleController.text;
     String description = descriptionController.text;
     String status = statusController.text;
-    String date = DateTime.now().millisecondsSinceEpoch.toString();
-    int id = 0;
-    Provider.of<ChairProvider>(this.context, listen: false).addOrUpdateNote(
-       id, imagePath, title, description, date, status, ChairMode.add);
+
+    if (id != null) {
+      Provider.of<ChairProvider>(context, listen: false).addOrUpdateNote(
+          id!, imagePath, title, description, status, ChairMode.update);
+      Navigator.of(context).pop();
+    } else {
+      int id = DateTime.now().millisecondsSinceEpoch;
+      Provider.of<ChairProvider>(context, listen: false).addOrUpdateNote(
+          id, imagePath, title, description, status, ChairMode.add);
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -76,7 +98,7 @@ class _ChairEditScreenState extends State<ChairEditScreen> {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                            image: FileImage(_image!), fit: BoxFit.fill),
+                            image: FileImage(_image!), fit: BoxFit.cover),
                       ),
                     ),
               ElevatedButton(
@@ -105,7 +127,7 @@ class _ChairEditScreenState extends State<ChairEditScreen> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                 ),
-                onPressed:saveChair,
+                onPressed: saveChair,
                 child: const Text("Save"),
               ),
             ],
